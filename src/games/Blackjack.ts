@@ -16,11 +16,6 @@ export class Player {
     return this.getPoints();
   }
 
-  
-  public stay(){
-
-  }
-
   public getPoints(){
     let temp = 0;
     if(this.cards){
@@ -31,7 +26,8 @@ export class Player {
       }
       
       if(temp > 21){
-        if(this.cards?.filter(card => card?.startsWith("A") !== null)) return temp - 10;
+        let haveAce = (this.cards?.filter(card => card?.startsWith("A"))).length > 0;
+        if (haveAce) temp -= 10;
       }
   
     }
