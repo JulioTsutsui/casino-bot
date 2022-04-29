@@ -13,6 +13,7 @@ console.log(token, clientId, guildId);
 
 const commands = [
   new SlashCommandBuilder().setName('bj').setDescription("Inicia uma partida de Blackjack com o BOT"),
+  new SlashCommandBuilder().setName('daily').setDescription("Resgate suas fichas diárias."),
 ].map(command => command.toJSON());
 
 if(token && clientId && guildId){

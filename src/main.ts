@@ -1,7 +1,8 @@
-import { ButtonInteraction, CacheType, Client, Intents, InteractionCollector, MessageActionRow, MessageButton, MessageComponentInteraction, MessageEmbed } from "discord.js";
+import { Client, Intents, MessageActionRow, MessageButton, MessageComponentInteraction, MessageEmbed } from "discord.js";
 import { setTimeout } from "timers/promises"
 import dotenv from "dotenv"
 import { generateDeck, Player, shuffle } from "./games/Blackjack";
+import { PrismaClient } from '@prisma/client'
 
 dotenv.config();
 
@@ -75,11 +76,6 @@ client.on('interactionCreate', async interaction =>{
     let player = new Player([deck.pop(), deck.pop()]);
     let dealer = new Player([deck.pop(), deck.pop()]);
 
-    console.log("player:",player.getCards());
-    console.log("player-points:",player.getPoints());
-    console.log("dealer:",dealer.getCards());
-    console.log("dealer-points:",dealer.getPoints());
-
     const row = new MessageActionRow()
     .addComponents(
       new MessageButton().setCustomId('hit').setLabel('Hit').setStyle('PRIMARY'),
@@ -106,17 +102,11 @@ client.on('interactionCreate', async interaction =>{
     collector?.on('collect', async i =>{
       if (i.customId === "hit") {
         player.hit(deck);
-        
-        console.log("player:",player.getCards());
-        console.log("player-points:",player.getPoints());
-        
+
         await playerTurn(player, dealer, 10, i, row, collector);
       }else{
         while(dealer.getPoints() <= player.getPoints() || dealer.getPoints() < 21){
           dealer.hit(deck);
-
-          console.log("dealer:",dealer.getCards());
-          console.log("dealer-points:",dealer.getPoints());
         }
         await checkResults(player, dealer, 10, i, row);
         collector.stop();
@@ -124,9 +114,52 @@ client.on('interactionCreate', async interaction =>{
     })
 
     collector?.on('end', async c =>{
-      await setTimeout(1000);
+      await setTimeout(1000 * 15);
       await interaction.deleteReply();
     });
+  } else if (commandName === 'daily') {
+    const prisma = new PrismaClient();
+    let user = await prisma.user.findFirst(
+      { where: {
+        discordId: interaction.user.id,
+      }}
+    )
+
+    if(!user) {
+      user = await prisma.user.create({
+        data: {
+          discordId: interaction.user.id,
+          chips: 100,
+          name: interaction.user.username,
+          nextDaily: new Date(new Date().getDate() + 1)
+        }
+      });
+
+      await interaction.reply("Nova conta criada! Você tem agora 100 fichas para jogar!\nVolte novamente todos os dias às 00:00 para resgatar sua diária novamente!");
+      await prisma.$disconnect();
+      return;
+    }
+
+    if(user.nextDaily <= new Date(new Date().getDate())) {
+      user.nextDaily = new Date(new Date().getDate() + 1)
+      
+      await prisma.user.update({
+        where: {
+          discordId: user.discordId,
+        },
+        data: {
+          chips: user.chips += 50
+        }
+      });
+
+      await interaction.reply("Você resgatou 50 fichas!\nVolte novamente todos os dias às 00:00 para resgatar sua diária novamente!");
+      await prisma.$disconnect();
+      return;
+    }
+
+    await interaction.reply("Você já resgatou sua diária!");
+    await prisma.$disconnect();
+    return;
   }
 })
 
@@ -162,7 +195,7 @@ async function playerTurn(player: Player, dealer: Player, chips: number, i: Mess
 }
 
 client.once('ready', () =>{
-  console.log('Bot is on!');
+  console.log('Casino bot is running!');
 });
 
 client.login(process.env.DISCORD_API_TOKEN);
