@@ -13,7 +13,7 @@
   },
   "scripts": {
     "dev": "npx ts-node-dev ./src/main.ts",
-    "start": "node ./dist/src/main.js",
+    "start": "node ./dist/main.js",
     "postinstall": "tsc"
   },
   "devDependencies": {
