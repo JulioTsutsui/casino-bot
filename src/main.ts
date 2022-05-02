@@ -3,6 +3,7 @@ import { setTimeout } from "timers/promises"
 import dotenv from "dotenv"
 import { generateDeck, Player, shuffle } from "./games/Blackjack";
 import { PrismaClient } from '@prisma/client'
+import moment from "moment";
 
 dotenv.config();
 
@@ -131,7 +132,7 @@ client.on('interactionCreate', async interaction =>{
           discordId: interaction.user.id,
           chips: 100,
           name: interaction.user.username,
-          nextDaily: new Date(new Date().getDate() + 1)
+          nextDaily: moment().add(1, 'days').toDate()
         }
       });
 
@@ -140,8 +141,8 @@ client.on('interactionCreate', async interaction =>{
       return;
     }
 
-    if(user.nextDaily <= new Date(new Date().getDate())) {
-      user.nextDaily = new Date(new Date().getDate() + 1)
+    if(user.nextDaily <= moment().toDate()) {
+      user.nextDaily = moment().add(1, 'day').toDate()
       
       await prisma.user.update({
         where: {
