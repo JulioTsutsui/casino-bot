@@ -1,4 +1,5 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
+import fs from 'node:fs';
+import path from 'node:path';
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v10";
 import dotenv from "dotenv";
@@ -11,13 +12,18 @@ const guildId = process.env.DISCORD_GUILD_ID;
 
 console.log(token, clientId, guildId);
 
-const commands = [
-  new SlashCommandBuilder().setName('bj').setDescription("Inicia uma partida de Blackjack com o BOT"),
-  new SlashCommandBuilder().setName('daily').setDescription("Resgate suas fichas diárias."),
-].map(command => command.toJSON());
-
 if(token && clientId && guildId){
   const rest = new REST().setToken(token);
+
+  const commands = [];
+  const commandsPath = path.join(__dirname, "commands");
+  const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".ts") || file.endsWith(".js"));
+  
+  for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+    commands.push(command.data.toJSON());
+  }
 
   rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands })
   .then(() => console.log("Comandos registrados com sucesso no servidor!"))
